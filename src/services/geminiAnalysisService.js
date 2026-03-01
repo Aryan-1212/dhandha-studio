@@ -15,7 +15,7 @@
  * Uses Gemini in TEXT-ONLY response mode (no image generation here).
  */
 
-import genAI from '../config/gemini.js';
+import { genAI, GEMINI_MODEL } from '../config/gemini.js';
 
 /**
  * The analysis prompt instructs Gemini to return structured JSON.
@@ -65,7 +65,7 @@ export const analyzeImage = async (imageUrl) => {
   const { base64, mimeType } = await fetchImageAsBase64(imageUrl);
 
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash-exp',
+    model: GEMINI_MODEL,
     generationConfig: {
       responseMimeType: 'application/json',
     },

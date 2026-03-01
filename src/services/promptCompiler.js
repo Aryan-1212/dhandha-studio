@@ -115,7 +115,7 @@ export const compilePrompt = ({
     inputImageUrl,
   };
 
-  return { prompt, dimensions };
+  return { prompt, promptString: JSON.stringify(prompt), dimensions };
 };
 
 /**

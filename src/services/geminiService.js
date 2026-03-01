@@ -11,7 +11,7 @@
  *   5. Return { buffer, mimeType, metadata }
  */
 
-import genAI from '../config/gemini.js';
+import { genAI, GEMINI_MODEL } from '../config/gemini.js';
 
 /**
  * Build a detailed, structured prompt from the user-supplied parameters.
@@ -111,13 +111,8 @@ export const generateImage = async ({
     lighting_style,
   });
 
-  // 3. Get the model — gemini-2.0-flash-exp supports image generation
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash-exp',
-    generationConfig: {
-      responseModalities: ['TEXT', 'IMAGE'],
-    },
-  });
+  // 3. Image generation is handled by KIE, not Gemini. This function should not use Gemini for final image generation.
+  // If you need to generate images, use kieService instead.
 
   // 4. Send multi-part content (text prompt + inline image)
   const result = await model.generateContent([

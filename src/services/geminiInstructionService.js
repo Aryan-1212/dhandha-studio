@@ -10,7 +10,7 @@
  * compiler can use.
  */
 
-import genAI from '../config/gemini.js';
+import { genAI, GEMINI_MODEL } from '../config/gemini.js';
 
 /**
  * Prompt template for instruction refinement.
@@ -66,7 +66,7 @@ export const processInstruction = async ({ userInstruction, imageAnalysis }) => 
 
   // CASE: User instruction exists → refine via Gemini
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash-exp',
+    model: GEMINI_MODEL,
     generationConfig: {
       temperature: 0.7,
       maxOutputTokens: 300,

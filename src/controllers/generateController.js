@@ -146,7 +146,7 @@ export const handleGenerate = async (req, res, next) => {
         // ── STEP 4: Prompt Compilation ─────────────────────────
         await updatePipelineStage(jobId, PIPELINE_STAGES.COMPILATION);
 
-        const { prompt: compiledPrompt, dimensions } = compilePrompt({
+        const { prompt: compiledPrompt, promptString, dimensions } = compilePrompt({
           normalizedConfig,
           imageAnalysis,
           finalInstruction: instructionResult.finalInstruction,
@@ -168,8 +168,12 @@ export const handleGenerate = async (req, res, next) => {
         await updatePipelineStage(jobId, PIPELINE_STAGES.GENERATION);
 
         const kieResult = await kieGenerate({
-          compiledPrompt,
-          inputImageUrl: uploaded.url,
+           compiledPrompt: promptString,
+           inputImageUrl: uploaded.url,
+           aspectRatio: normalizedConfig.aspectRatio,
+           resolution: normalizedConfig.resolution,
+           outputFormat: normalizedConfig.outputFormat || 'png',
+           callBackUrl: '',
         });
 
         // Upload KIE output to Cloudinary

@@ -13,6 +13,7 @@ if (!GEMINI_API_KEY) {
   throw new Error('GEMINI_API_KEY is required in environment variables.');
 }
 
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
-export default genAI;
+export { genAI, GEMINI_MODEL };
