@@ -6,7 +6,8 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "node --watch src/server.js"
+    "dev": "node --watch src/server.js",
+    "seed:demo": "node scripts/seed-demo-user.js"
   },
   "keywords": ["ai", "image-generation", "gemini", "cloudinary", "firebase"],
   "license": "ISC",

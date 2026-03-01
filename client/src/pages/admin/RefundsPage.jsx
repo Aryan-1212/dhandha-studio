@@ -1,47 +1,58 @@
 import React, { useState, useEffect } from 'react';
-
-const MOCK_REFUNDS = [
-  { id: 'ref_001', refund_id: 'ref_001', user_id: 'usr_d4e5f6', job_id: 'job_abc', credits_requested: 1, reason: 'Image quality was poor — faces were distorted.', status: 'pending', created_at: '2026-02-27T14:30:00Z' },
-  { id: 'ref_002', refund_id: 'ref_002', user_id: 'usr_g7h8i9', job_id: 'job_def', credits_requested: 1, reason: 'Wrong background applied. Requested studio white, got outdoor.', status: 'pending', created_at: '2026-02-28T09:15:00Z' },
-  { id: 'ref_003', refund_id: 'ref_003', user_id: 'usr_j0k1l2', job_id: 'job_ghi', credits_requested: 2, reason: 'Generation timed out twice.', status: 'pending', created_at: '2026-02-28T11:45:00Z' },
-];
+import { getAdminRefunds, approveAdminRefund, rejectAdminRefund } from '../../services/api.js';
 
 export default function RefundsPage() {
   const [refunds, setRefunds] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [actionLog, setActionLog] = useState('');
+  const [actionLog, setActionLog] = useState({ text: '', type: 'success' });
+  const [authError, setAuthError] = useState(false);
 
-  useEffect(() => {
-    fetch('/api/admin/refunds', { headers: { Authorization: `Bearer ${localStorage.getItem('ds_api_key') || ''}` } })
-      .then((r) => r.ok ? r.json() : Promise.reject())
+  const loadRefunds = () => {
+    setLoading(true);
+    setAuthError(false);
+    getAdminRefunds()
       .then((res) => setRefunds(res.data || []))
-      .catch(() => setRefunds(MOCK_REFUNDS))
+      .catch((err) => {
+        if (err.status === 401 || err.status === 403) setAuthError(true);
+        setRefunds([]);
+      })
       .finally(() => setLoading(false));
-  }, []);
-
-  const handleApprove = (id) => {
-    setRefunds((prev) => prev.filter((r) => r.id !== id));
-    setActionLog(`✅ Refund ${id} approved. Credit returned.`);
-    setTimeout(() => setActionLog(''), 4000);
   };
 
-  const handleReject = (id) => {
-    const reason = prompt('Rejection reason:');
-    if (reason) {
+  useEffect(() => loadRefunds(), []);
+
+  const handleApprove = async (id) => {
+    try {
+      await approveAdminRefund(id);
       setRefunds((prev) => prev.filter((r) => r.id !== id));
-      setActionLog(`❌ Refund ${id} rejected: ${reason}`);
-      setTimeout(() => setActionLog(''), 4000);
+      setActionLog({ text: 'Refund approved. Credit returned.', type: 'success' });
+    } catch (err) {
+      setActionLog({ text: err.message || 'Approve failed.', type: 'danger' });
     }
+    setTimeout(() => setActionLog({ text: '', type: '' }), 4000);
+  };
+
+  const handleReject = async (id) => {
+    const reason = prompt('Rejection reason (optional):');
+    try {
+      await rejectAdminRefund(id, reason);
+      setRefunds((prev) => prev.filter((r) => r.id !== id));
+      setActionLog({ text: 'Refund rejected.', type: 'success' });
+    } catch (err) {
+      setActionLog({ text: err.message || 'Reject failed.', type: 'danger' });
+    }
+    setTimeout(() => setActionLog({ text: '', type: '' }), 4000);
   };
 
   if (loading) return <div className="loading-page"><span className="spinner" /> Loading refunds...</div>;
+  if (authError) return <div className="card"><div className="empty-state"><div className="empty-title">Authentication required</div><div className="empty-desc">Set your API key to view refund requests.</div></div></div>;
 
   return (
     <div>
       <h1 className="page-title">Refund Requests</h1>
       <p className="page-desc">Review and manage pending refund requests from users.</p>
 
-      {actionLog && <div className="alert alert-success">{actionLog}</div>}
+      {actionLog.text && <div className={`alert alert-${actionLog.type}`}>{actionLog.text}</div>}
 
       <div className="stat-grid" style={{ marginBottom: 24 }}>
         <div className="stat-card">
@@ -59,42 +70,46 @@ export default function RefundsPage() {
           </div>
         </div>
       ) : (
-        <div className="card">
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>User</th>
-                  <th>Job</th>
-                  <th>Credits</th>
-                  <th>Reason</th>
-                  <th>Date</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {refunds.map((r) => (
-                  <tr key={r.id}>
-                    <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{r.refund_id}</td>
-                    <td style={{ fontSize: 12 }}>{r.user_id}</td>
-                    <td style={{ fontSize: 12 }}>{r.job_id}</td>
-                    <td><span className="badge badge-warning">{r.credits_requested}</span></td>
-                    <td style={{ maxWidth: 260, fontSize: 13, lineHeight: 1.4 }}>{r.reason}</td>
-                    <td style={{ fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(r.created_at).toLocaleDateString()}</td>
-                    <td style={{ whiteSpace: 'nowrap' }}>
-                      <button className="btn btn-sm btn-success" style={{ marginRight: 6 }} onClick={() => handleApprove(r.id)}>
-                        Approve
-                      </button>
-                      <button className="btn btn-sm btn-danger" onClick={() => handleReject(r.id)}>
-                        Reject
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className="refund-list">
+          {refunds.map((r) => (
+            <div key={r.id} className="card refund-ticket" style={{ marginBottom: 20 }}>
+              <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+                <div style={{ flex: '1 1 300px' }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>
+                    {r.refund_id} · User: {r.user_id} · Job: {r.job_id} · {r.credits_requested} credit(s)
+                  </div>
+                  <div style={{ marginBottom: 12 }}>
+                    <strong>Reason:</strong> {r.reason}
+                  </div>
+                  {r.prompt && (
+                    <div style={{ marginBottom: 12, fontSize: 13 }}>
+                      <strong>Prompt:</strong>
+                      <pre style={{ margin: '4px 0 0', padding: 8, background: 'var(--bg-secondary)', borderRadius: 6, fontSize: 12, overflow: 'auto', maxHeight: 80 }}>{typeof r.prompt === 'string' ? r.prompt : JSON.stringify(r.prompt)}</pre>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                    <button className="btn btn-sm btn-success" onClick={() => handleApprove(r.id)}>Approve</button>
+                    <button className="btn btn-sm btn-danger" onClick={() => handleReject(r.id)}>Reject</button>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                  {r.input_image_url && (
+                    <div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Raw image</div>
+                      <img src={r.input_image_url} alt="Raw" style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)' }} />
+                    </div>
+                  )}
+                  {r.output_url && (
+                    <div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Generated</div>
+                      <img src={r.output_url} alt="Generated" style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)' }} />
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{r.created_at ? new Date(r.created_at).toLocaleString() : ''}</div>
+            </div>
+          ))}
         </div>
       )}
     </div>

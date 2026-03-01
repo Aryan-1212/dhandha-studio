@@ -29,21 +29,23 @@ import {
 
 /**
  * Validate a single field against an allowed list.
+ * Case-insensitive comparison; returns canonical value from allowed list.
  * @param {string} fieldName
  * @param {*} value
  * @param {string[]|Set<string>} allowed
  * @param {string[]} errors
- * @returns {string|null} normalized lowercase value or null
+ * @returns {string|null} canonical value from allowed list, or null
  */
 const validateEnum = (fieldName, value, allowed, errors) => {
   if (value === undefined || value === null || value === '') return null;
   const normalized = String(value).toLowerCase().trim();
-  const allowedSet = allowed instanceof Set ? allowed : new Set(allowed);
-  if (!allowedSet.has(normalized)) {
-    errors.push(`Invalid ${fieldName}: "${value}". Allowed: ${[...allowedSet].join(', ')}`);
+  const allowedArr = allowed instanceof Set ? [...allowed] : [...allowed];
+  const canonical = allowedArr.find((a) => String(a).toLowerCase() === normalized);
+  if (!canonical) {
+    errors.push(`Invalid ${fieldName}: "${value}". Allowed: ${allowedArr.join(', ')}`);
     return null;
   }
-  return normalized;
+  return canonical;
 };
 
 /**

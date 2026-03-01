@@ -24,7 +24,7 @@
 
 import { validateBase64 } from '../utils/validateBase64.js';
 import { generateJobId } from '../utils/generateJobId.js';
-import { validateAndDeductCredit } from '../services/creditService.js';
+import { validateAndDeductCredit, addCredits } from '../services/creditService.js';
 import { createJob, updatePipelineStage } from '../services/jobService.js';
 import { uploadBase64, uploadBuffer } from '../services/cloudinaryService.js';
 import { validateConfig } from '../services/configValidator.js';
@@ -209,6 +209,11 @@ export const handleGenerate = async (req, res, next) => {
         console.error(`[JOB] ${jobId} — FAILED:`, asyncError.message);
 
         try {
+          // Credit rollback — refund 1 credit on generation failure
+          await addCredits(req.user.userId, 1).catch((e) =>
+            console.error(`[JOB] ${jobId} — Credit rollback failed:`, e.message)
+          );
+
           await updatePipelineStage(jobId, PIPELINE_STAGES.FAILED, {
             metadata: {
               error: asyncError.message,

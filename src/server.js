@@ -32,6 +32,7 @@
  */
 
 import 'dotenv/config';        // Load .env BEFORE all other imports
+import { validateEnv } from './config/envValidation.js';
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
@@ -91,6 +92,9 @@ app.use((_req, res) => {
 
 // ── Global Error Handler (must be last) ─────────────────────────
 app.use(errorHandler);
+
+// ── Validate Environment (fail-fast before accepting requests) ────
+validateEnv();
 
 // ── Start Server ────────────────────────────────────────────────
 app.listen(PORT, () => {

@@ -30,15 +30,23 @@ const authMiddleware = async (req, res, next) => {
     }
 
     // ── 2. Parse Bearer token ──────────────────────────────────
-    const parts = authHeader.split(' ');
-    if (parts.length !== 2 || parts[0] !== 'Bearer') {
+    const match = authHeader.match(/^Bearer\s+(.+)$/i);
+    if (!match) {
       return res.status(401).json({
-        error: 'Authorization header must be in format: Bearer <API_KEY>',
+        error: `Authorization header must be in format: Bearer <API_KEY>. Received: ${authHeader}`,
         code: 'AUTH_MALFORMED',
       });
     }
 
-    const apiKey = parts[1];
+    const apiKey = match[1].trim();
+
+    // ── 2b. Reject empty API key (never send Bearer with no key) ─
+    if (!apiKey) {
+      return res.status(401).json({
+        error: 'Authorization header must be in format: Bearer <API_KEY>. API key cannot be empty.',
+        code: 'AUTH_EMPTY_KEY',
+      });
+    }
 
     // ── 3. Validate API key against Firestore ──────────────────
     const user = await findUserByApiKey(apiKey);

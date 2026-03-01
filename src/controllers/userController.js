@@ -192,6 +192,7 @@ export const requestRefund = async (req, res, next) => {
     // Create refund request
     const refundId = `ref_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
 
+    const jobData = jobDoc.data();
     await db.collection('refund_requests').doc(refundId).set({
       refund_id: refundId,
       job_id: jobId,
@@ -199,8 +200,9 @@ export const requestRefund = async (req, res, next) => {
       credits_requested: 1,
       reason: reason || 'No reason provided.',
       status: 'pending',
-      input_image_url: jobDoc.data().input_image_url || null,
-      output_url: jobDoc.data().outputUrl || jobDoc.data().output_url || null,
+      input_image_url: jobData.input_image_url || null,
+      output_url: jobData.outputUrl || jobData.output_url || null,
+      prompt: jobData.finalPrompt?.instruction ?? JSON.stringify(jobData.finalPrompt || {}),
       created_at: admin.firestore.FieldValue.serverTimestamp(),
     });
 

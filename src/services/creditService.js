@@ -11,7 +11,7 @@
  * same user cannot race past a zero-credit balance.
  */
 
-import { db } from '../config/firebase.js';
+import admin, { db } from '../config/firebase.js';
 
 /**
  * Look up a user document by API key.
@@ -67,4 +67,20 @@ export const validateAndDeductCredit = async (userId) => {
   return newCredits;
 };
 
-export default { findUserByApiKey, validateAndDeductCredit };
+/**
+ * Add credits to a user (e.g. rollback on generation failure).
+ *
+ * @param {string} userId  Firestore document ID
+ * @param {number} amount  Credits to add (positive)
+ * @returns {Promise<number>}  Credits after addition
+ */
+export const addCredits = async (userId, amount = 1) => {
+  const userRef = db.collection('users').doc(userId);
+  await userRef.update({
+    credits: admin.firestore.FieldValue.increment(amount),
+  });
+  const doc = await userRef.get();
+  return doc.data().credits ?? 0;
+};
+
+export default { findUserByApiKey, validateAndDeductCredit, addCredits };
